@@ -1,10 +1,10 @@
 #ifndef SCHEDULER_H__
 #define SCHEDULER_H__
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
 #define QUANTUM 10
 
@@ -24,17 +24,17 @@ enum events {
 };
 
 struct task {
-    int pid;
-    enum states state;
+    int          pid;
+    enum states  state;
     struct task* prev;
     struct task* next;
-    int runtime;
+    int          runtime;
 };
 
 struct run_queue {
     struct task* head;
-    size_t n_tasks;
-    int time_counter;
+    size_t       n_tasks;
+    int          time_counter;
 };
 
 #endif // SCHEDULER_H__
