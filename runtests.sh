@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 mkdir -p build
 
+#if installed use "bear" to make a compile_commands.json
 if command -v bear >/dev/null 2>&1
 then
     BEAR="bear -- "
 fi
 
 compile() {
- $BEAR cc -g -Wall -Wextra -Wshadow $@ -I src \
+ $BEAR cc -g -Wall -Wextra -Wshadow $@ -I src -I ext/ \
     test.c \
+    ext/Unity/src/unity.c \
     src/doubly_linked_list.c \
     src/scheduler_round_robin.c \
     src/scheduler_sjf.c

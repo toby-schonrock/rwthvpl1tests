@@ -1,11 +1,25 @@
-#include "doubly_linked_list.h"
-#include "scheduler_round_robin.h"
-#include "scheduler_sjf.h"
+#include "Unity/src/unity.h"
 
-int main() {
-	printf("Test 1 passed blah blah blah\n");
-    struct run_queue* rq = malloc(sizeof(struct run_queue));
-    stud_SJF_start(rq, 1);
-    free(rq);
-	return 0;
+
+void setUp(void) {
+    // set stuff up here
+}
+
+void tearDown(void) {
+    // clean stuff up here
+}
+
+void test_test1(void) {
+    TEST_ASSERT_EQUAL_INT_MESSAGE(4,4, "4=4 :)");
+}
+
+void test_test2(void) {
+    TEST_ASSERT_EQUAL_INT_MESSAGE(4,5, "4=5 !?");
+}
+
+int main(void) {
+    UNITY_BEGIN();
+    RUN_TEST(test_test1);
+    RUN_TEST(test_test2);
+    return UNITY_END();
 }
