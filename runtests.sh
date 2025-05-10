@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 mkdir -p build
 
+if command -v bear >/dev/null 2>&1
+then
+    BEAR="bear -- "
+fi
+
 compile() {
- cc -g -Wall -Wextra -Wshadow $@ -I src \
+ $BEAR cc -g -Wall -Wextra -Wshadow $@ -I src \
     test.c \
     src/doubly_linked_list.c \
     src/scheduler_round_robin.c \
@@ -15,11 +20,11 @@ compile -fsanitize=address,undefined -o build/test.asan
 echo "Running tests"
 ./build/test.asan
 
-if ! command -v valgrind >/dev/null 2>&1
+if command -v valgrind >/dev/null 2>&1
 then
-    echo "Valgrind could not be found consider installing valgrind for memory checking"
-else 
     echo "Valgrinding"
     compile -o build/test >/dev/null 2>&1
     valgrind -q --leak-check=full --errors-for-leak-kinds=all ./build/test >/dev/null
+else 
+    echo "Valgrind could not be found consider installing valgrind for memory checking"
 fi
