@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+ERROR='\033[0;31m' # Red
+INFO='\033[1;34m' # Blue
+NC='\033[0m' # No Color
+
 mkdir -p build
 
 #if installed use "bear" to make a compile_commands.json
@@ -16,21 +21,21 @@ compile() {
     src/scheduler_sjf.c
 }
 
-echo "Building..."
+echo -e "${INFO}Building${NC}"
 if ! compile -fsanitize=address,undefined -o build/test.asan
 then
-    echo "Build failed :("
+    echo -e "${ERROR}Build failed :(${NC}"
     exit 1
 fi
 
-echo "Running tests"
+echo -e "${INFO}Running tests${NC}"
 ./build/test.asan
 
 if command -v valgrind >/dev/null 2>&1
 then
-    echo "Valgrinding"
+    echo -e "${INFO}Valgrinding${NC}"
     compile -o build/test >/dev/null 2>&1
     valgrind -q --leak-check=full --errors-for-leak-kinds=all ./build/test >/dev/null
 else 
-    echo "Valgrind could not be found consider installing valgrind for memory checking"
+    echo -e "${INFO}}Valgrind could not be found consider installing valgrind for memory checking${NC}"
 fi
