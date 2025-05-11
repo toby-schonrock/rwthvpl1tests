@@ -167,6 +167,7 @@ void test_4_RunQueue_validation_5_broken_prev(void) {
     validate_rq(rq_5);
 }
 
+// NOTE WILL CAUSE MEMORY LEAK BECAUSE ELEMENTS ARE LOST
 void test_5_RunQueue_validation_5_broken_loop(void) {
     rq_5->head->next->next->next = rq_5->head->next;
     validate_rq(rq_5);
