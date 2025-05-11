@@ -16,8 +16,12 @@ compile() {
     src/scheduler_sjf.c
 }
 
-echo "Building"
-compile -fsanitize=address,undefined -o build/test.asan
+echo "Building..."
+if ! compile -fsanitize=address,undefined -o build/test.asan
+then
+    echo "Build failed :("
+    exit 1
+fi
 
 echo "Running tests"
 ./build/test.asan
