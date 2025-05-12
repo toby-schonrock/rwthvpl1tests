@@ -81,12 +81,12 @@ static run_queue* run_queue_new(size_t len) {
     ++rq->n_tasks;
     task* prev = rq->head;
     while (rq->n_tasks < len) {
-        ++rq->n_tasks;
         task* curr    = task_new(rq->n_tasks, READY);
         curr->runtime = rq->n_tasks + 2;
         prev->next    = curr;
         curr->prev    = prev;
         prev          = curr;
+        ++rq->n_tasks;
     }
     return rq;
 }
@@ -210,7 +210,7 @@ static void validate_rq(const run_queue* rq) {
         }
     }
     TEST_ASSERT_EQUAL_INT_MESSAGE(len, rq->n_tasks, "length of runqueue != n_tasks");
-    utstring_printf(logstr, " Validation successful ");
+    utstring_printf(logstr, " Validation successful! ");
     task_table_clear();
 }
 
@@ -233,5 +233,5 @@ static void compare_rq(const run_queue* rq, const run_queue* studrq) {
         studt = studt->next;
         if (t) utstring_printf(logstr, "<->%s", task_tostring(t, taskstr1));
     }
-    utstring_printf(logstr, " runque matches model! ");
+    utstring_printf(logstr, " Runque matches model! ");
 }

@@ -202,7 +202,7 @@ void test_7_RunQueue_find(void) {
     validate_rq(rq_stud_3);
     compare_rq(rq_3, rq_stud_3);
     TEST_ASSERT_NOT_NULL_MESSAGE(res, errfmt("stud_rq_find 2 on runqueue3 expected !NULL"));
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(rq_stud_3->head->next, res,
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(rq_stud_3->head->next->next, res,
                                   errfmt("stud_rq_find 2 on runqueue3 expected %s was %s",
                                          task_tostring(rq_3->head->next->next, taskstr1),
                                          task_tostring(res, taskstr2)));
@@ -223,7 +223,7 @@ void test_8_RunQueue_length(void) {
     clear_log();
     utstring_printf(logstr, "Testing runqueue3. ");
     TEST_ASSERT_EQUAL_INT_MESSAGE(stud_rq_length(rq_stud_3), 3,
-                                  errfmt("stud_rq_find on emptyqueue expected 3"));
+                                  errfmt("stud_rq_length on runqueue3 expected 3"));
     validate_rq(rq_stud_3);
     compare_rq(rq_3, rq_stud_3);
 }
@@ -241,6 +241,91 @@ void test_9_runqueue_destroy(void) {
     compare_rq(rq_empty, rq_stud_3);
 }
 
+void test_10_SJF_start(void) {
+    utstring_printf(logstr, "Testing emptyqueue. ");
+    // model
+    rq_empty->head          = task_new(0, READY);
+    rq_empty->head->runtime = 0;
+    ++rq_empty->n_tasks;
+    // stud
+    stud_SJF_start(rq_stud_empty, 0);
+    validate_rq(rq_stud_empty);
+    compare_rq(rq_empty, rq_stud_empty);
+
+    clear_log();
+    utstring_printf(logstr, "Testing runqueue3 start 3 t0. ");
+    // model
+    task* t       = task_new(3, READY);
+    t->runtime    = 0;
+    t->next       = rq_3->head->next;
+    t->next->prev = t;
+    t->prev       = rq_3->head;
+    t->prev->next = t;
+    ++rq_3->n_tasks;
+    // stud
+    stud_SJF_start(rq_stud_3, 3);
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
+
+    clear_log();
+    utstring_printf(logstr, "Testing runqueue3 duplicate element(do nothing). ");
+    // model do nothing lol
+    // stud
+    stud_SJF_start(rq_stud_3, 3);
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
+}
+
+void test_12_13_elect(void) {
+    utstring_printf(logstr, "Testing runqueue3 alreay running(do nothing). ");
+    // model do nothing lol
+    stud_SJF_elect(rq_stud_3);
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
+
+    clear_log();
+    utstring_printf(logstr, "Testing runqueue3 only last task READY. ");
+    // setup
+    rq_3->head->state            = BLOCKED;
+    rq_3->head->next->state      = BLOCKED;
+    rq_stud_3->head->state       = BLOCKED;
+    rq_stud_3->head->next->state = BLOCKED;
+    // model
+    task* old_tail       = rq_3->head->next->next;
+    old_tail->state      = RUNNING;
+    old_tail->prev->next = NULL;
+    old_tail->prev       = NULL;
+    old_tail->next       = rq_3->head;
+    rq_3->head->prev     = old_tail;
+    rq_3->head           = old_tail;
+    // stud
+    stud_SJF_elect(rq_stud_3);
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
+
+    clear_log();
+    utstring_printf(logstr, "Testing runqueue3 middle task READY. ");
+    // setup
+    rq_3->head->state            = BLOCKED;
+    rq_3->head->next->state      = READY;
+    rq_stud_3->head->state       = BLOCKED;
+    rq_stud_3->head->next->state = READY;
+    // model
+    task* middle       = rq_3->head->next;
+    middle->state      = RUNNING;
+    middle->prev->next = middle->next;
+    middle->prev       = NULL;
+    middle->next       = rq_3->head;
+    rq_3->head->prev   = middle;
+    rq_3->head         = middle;
+    // stud
+    stud_SJF_elect(rq_stud_3);
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
+}
+
+void test_14_SJF_terminate(void) {}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_1_RunQueue_empty_check);
@@ -252,5 +337,8 @@ int main(void) {
     RUN_TEST(test_7_RunQueue_find);
     RUN_TEST(test_8_RunQueue_length);
     RUN_TEST(test_9_runqueue_destroy);
+    RUN_TEST(test_10_SJF_start);
+    RUN_TEST(test_12_13_elect);
+    RUN_TEST(test_14_SJF_terminate);
     return UNITY_END();
 }

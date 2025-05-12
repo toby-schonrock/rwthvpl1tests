@@ -11,6 +11,7 @@ This project attempts to amend that by allowing:
 1. Use of your preffered IDE
 1. Use of static analysers
 1. Hopefully clear and thorough tests
+1. More sensible test order
 
 To use :
 1. Pull the project with the option "--recurse-submodules"

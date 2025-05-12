@@ -14,11 +14,11 @@ fi
 
 compile() {
  $BEAR cc -g -Wall -Wextra -Wshadow $@ -I src -I ext/ \
-    test.c \
     ext/Unity/src/unity.c \
     src/doubly_linked_list.c \
     src/scheduler_round_robin.c \
-    src/scheduler_sjf.c
+    src/scheduler_sjf.c \
+    test.c
 }
 
 echo -e "${INFO}Building${NC}"
