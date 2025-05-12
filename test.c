@@ -226,11 +226,13 @@ static void compare_rq(const run_queue* rq, const run_queue* studrq) {
                                       errfmt("Stud pid differs from model pid"));
         TEST_ASSERT_EQUAL_INT_MESSAGE(t->state, studt->state,
                                       errfmt("Stud state differs from model state"));
+        TEST_ASSERT_EQUAL_INT_MESSAGE(t->runtime, studt->runtime,
+                                      errfmt("Stud runtime differs from model runtime"));
         t     = t->next;
         studt = studt->next;
         if (t) utstring_printf(logstr, "<->%s", task_tostring(t, taskstr1));
     }
-    utstring_printf(logstr, "Runque = model ");
+    utstring_printf(logstr, " runque matches model! ");
 }
 
 void test_1_RunQueue_empty_check(void) {
@@ -421,23 +423,23 @@ void test_7_RunQueue_find(void) {
     clearLog();
     utstring_printf(logstr, "Testing runqueue3 find 0. ");
     task* res = stud_rq_find(rq_stud_3, 0);
-    validate_rq(rq_stud_empty);
-    compare_rq(rq_empty, rq_stud_empty);
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
     TEST_ASSERT_NOT_NULL_MESSAGE(res, errfmt("stud_rq_find 0 on runqueue3 expected !NULL"));
     TEST_ASSERT_EQUAL_PTR_MESSAGE(rq_stud_3->head, res,
-                                  errfmt("stud_rq_find 0 on runqueue3 expected %s",
+                                  errfmt("stud_rq_find 0 on runqueue3 expected %s was %s",
                                          task_tostring(rq_3->head, taskstr1),
                                          task_tostring(res, taskstr2)));
 
     clearLog();
     utstring_printf(logstr, "Testing runqueue3 find 2. ");
     res = stud_rq_find(rq_stud_3, 2);
-    validate_rq(rq_stud_empty);
-    compare_rq(rq_empty, rq_stud_empty);
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
     TEST_ASSERT_NOT_NULL_MESSAGE(res, errfmt("stud_rq_find 2 on runqueue3 expected !NULL"));
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(rq_stud_3->head->next->next, res,
-                                  errfmt("stud_rq_find 0 on runqueue3 expected %s",
-                                         task_tostring(rq_3->head, taskstr1),
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(rq_stud_3->head->next, res,
+                                  errfmt("stud_rq_find 2 on runqueue3 expected %s was %s",
+                                         task_tostring(rq_3->head->next->next, taskstr1),
                                          task_tostring(res, taskstr2)));
 
     clearLog();
