@@ -1,5 +1,6 @@
 #include "Unity/src/unity.h"
 #include "ext/uthash/src/uthash.h"
+#include "ext/uthash/src/utstring.h"
 
 #include "doubly_linked_list.h"
 #include "scheduler_round_robin.h"
@@ -8,9 +9,13 @@
 typedef struct task      task;
 typedef struct run_queue run_queue;
 
-static const size_t TASKBUFFSIZE = 20;
-
-static void task_tostring(const task* t, char* out) { snprintf(out, TASKBUFFSIZE, "%d", t->pid); }
+// never change or free return value only to be used for printf'ing
+// free utbuffer instead
+static char* task_tostring(const task* t, UT_string* utbuffer) {
+    utstring_clear(utbuffer);
+    utstring_printf(utbuffer, "(%d)", t->pid);
+    return utstring_body(utbuffer);
+}
 
 // structure used to store tasks* in a hash table
 typedef struct hshable_taskptr {
@@ -42,7 +47,7 @@ static task* task_new(int pid, int state) {
     t->state   = state;
     t->prev    = NULL;
     t->next    = NULL;
-    t->runtime = 5;
+    t->runtime = 3;
     return t;
 }
 
@@ -86,18 +91,56 @@ static void run_queue_free(run_queue* rq) {
     task_table_clear();
 }
 
+// globals to be used in tests
+UT_string* logstr;
+UT_string* errstr;
+UT_string* taskstr1;
+UT_string* taskstr2;
+UT_string* taskstr3;
+
+run_queue* rq_empty;
+run_queue* rq_3;
+run_queue* rq_stud_empty;
+run_queue* rq_stud_3;
+
+void setUp(void) {
+    utstring_new(logstr);
+    utstring_new(errstr);
+    utstring_new(taskstr1);
+    utstring_new(taskstr2);
+    utstring_new(taskstr3);
+    utstring_printf(logstr, "LOG: ");
+    rq_empty      = run_queue_new(0);
+    rq_3          = run_queue_new(3);
+    rq_stud_empty = run_queue_new(0);
+    rq_stud_3     = run_queue_new(3);
+}
+
+void tearDown(void) {
+    task_table_clear(); // free hashtable if still has contents due to test fail
+    utstring_free(logstr);
+    utstring_free(errstr);
+    utstring_free(taskstr1);
+    utstring_free(taskstr2);
+    utstring_free(taskstr3);
+    run_queue_free(rq_empty);
+    run_queue_free(rq_3);
+    run_queue_free(rq_stud_empty);
+    run_queue_free(rq_stud_3);
+}
+
+// checks legnth, prev/next pointers, loops
 static void validate_rq(const run_queue* rq) {
     size_t len = 0;
-    // string buffers for error messages
-    static const size_t ERRBUFFSIZE = 200;
-    char                errbuff[ERRBUFFSIZE];
-    char                taskbuff1[TASKBUFFSIZE];
-    char                taskbuff2[TASKBUFFSIZE];
-    char                taskbuff3[TASKBUFFSIZE];
+    utstring_printf(logstr, "Validating runqueue: ");
 
     if (rq->head) {
         ++len;
-        TEST_ASSERT_NULL_MESSAGE(rq->head->prev, "head->prev != NULL");
+        utstring_clear(errstr);
+        utstring_printf(errstr, "rq->head->prev expected NULL was !NULL %s", utstring_body(logstr));
+        TEST_ASSERT_NULL_MESSAGE(rq->head->prev, utstring_body(errstr));
+        utstring_printf(logstr, "%s<->", task_tostring(rq->head, taskstr1));
+
         // add head to seen tasks
         hshable_taskptr* ht = hshable_taskptr_new(rq->head);
         HASH_ADD_PTR(task_table, t, ht);
@@ -109,23 +152,24 @@ static void validate_rq(const run_queue* rq) {
             hshable_taskptr* res = NULL;
             HASH_FIND_PTR(task_table, &curr, res);
             // if loop present
-            task_tostring(curr, taskbuff1);
-            snprintf(errbuff, ERRBUFFSIZE, "Looped element '%s' at pos %ld (second occurence)",
-                     taskbuff1, len);
-            TEST_ASSERT_NULL_MESSAGE(res, errbuff);
+            utstring_clear(errstr);
+            utstring_printf(errstr, "Looped element %s at pos %ld (second occurence) %s",
+                            task_tostring(curr, taskstr1), len - 1, utstring_body(logstr));
+            TEST_ASSERT_NULL_MESSAGE(res, utstring_body(errstr));
 
             // check curr->prev isn't null
-            snprintf(errbuff, ERRBUFFSIZE, "Element '%s' at pos %ld previous is NULL", taskbuff1,
-                     len);
-            TEST_ASSERT_NOT_NULL_MESSAGE(curr->prev, errbuff);
+            utstring_clear(errstr);
+            utstring_printf(errstr, "Element %s at pos %ld previous was NULL %s",
+                            utstring_body(taskstr1), len, utstring_body(logstr));
+            TEST_ASSERT_NOT_NULL_MESSAGE(curr->prev, utstring_body(errstr));
             // check curr->prev isn't wrong
-            task_tostring(prev, taskbuff2);
-            task_tostring(curr->prev, taskbuff3);
-            snprintf(errbuff, ERRBUFFSIZE,
-                     "Element '%s' at pos %ld previous expected '%s' got '%s'", taskbuff1, len,
-                     taskbuff2, taskbuff3);
-            TEST_ASSERT_EQUAL_PTR_MESSAGE(prev, curr->prev, errbuff);
+            utstring_clear(errstr);
+            utstring_printf(errstr, "Element '%s' at pos %ld previous expected '%s' was '%s' %s",
+                            utstring_body(taskstr1), len, task_tostring(prev, taskstr2),
+                            task_tostring(curr->prev, taskstr3), utstring_body(logstr));
+            TEST_ASSERT_EQUAL_PTR_MESSAGE(prev, curr->prev, utstring_body(errstr));
 
+            utstring_printf(logstr, "<->%s", utstring_body(taskstr1));
             // add to hashtable and iterate
             ht = hshable_taskptr_new(curr);
             HASH_ADD_PTR(task_table, t, ht);
@@ -133,52 +177,108 @@ static void validate_rq(const run_queue* rq) {
             curr = curr->next;
         }
     }
-    TEST_ASSERT_EQUAL_INT_MESSAGE(len, rq->n_tasks, "length of dll != n_tasks");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(len, rq->n_tasks, "length of runqueue != n_tasks");
+    utstring_printf(logstr, " Validation successful ");
     task_table_clear();
 }
 
-// globals to be used in tests
-run_queue* rq_empty;
-run_queue* rq_5;
-
-void setUp(void) {
-    rq_empty = run_queue_new(0);
-    rq_5     = run_queue_new(5);
+// compares PID's and states between model and stud rqs
+// should call validate first does not do invalidity checking
+static void compare_rq(const run_queue* rq, const run_queue* studrq) {
+    utstring_printf(logstr, "Comparing to model runqueue: ");
+    utstring_clear(errstr);
+    utstring_printf(errstr, "Runque length incorrect %s", utstring_body(logstr));
+    TEST_ASSERT_EQUAL_INT_MESSAGE(rq->n_tasks, studrq->n_tasks, utstring_body(errstr));
+    task* t     = rq->head;
+    task* studt = studrq->head;
+    while (t) {
+        utstring_clear(errstr);
+        utstring_printf(errstr, "Stud pid expected = model pid %s", utstring_body(logstr));
+        TEST_ASSERT_EQUAL_INT_MESSAGE(t->pid, studt->pid, utstring_body(errstr));
+        utstring_clear(errstr);
+        utstring_printf(errstr, "Stud state expected = model state %s", utstring_body(logstr));
+        TEST_ASSERT_EQUAL_INT_MESSAGE(t->state, studt->state, utstring_body(errstr));
+        t     = t->next;
+        studt = studt->next;
+    }
+    utstring_printf(logstr, "Runque = model ");
 }
 
-void tearDown(void) {
-    // free hashtable if still has contents due to test fail
-    task_table_clear();
-    run_queue_free(rq_empty);
-    run_queue_free(rq_5);
+void test_1_RunQueue_empty_check(void) {
+    utstring_printf(logstr, "Testing emptyqueue. ");
+    TEST_ASSERT_MESSAGE(stud_rq_empty(rq_stud_empty),
+                        "stud_rq_empty on emptyqueue expected true returned false");
+    validate_rq(rq_stud_empty);
+    compare_rq(rq_empty, rq_stud_empty);
+
+    utstring_printf(logstr, "Testing runqueue3. ");
+    TEST_ASSERT_MESSAGE(!stud_rq_empty(rq_stud_3),
+                        "stud_rq_empty on runqueue3 expected false returned true");
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
 }
 
-void test_1_RunQueue_validation_empty(void) { validate_rq(rq_empty); }
+void test_2_RunQueue_head(void) {
+    utstring_printf(logstr, "Testing emptyqueue. ");
+    TEST_ASSERT_NULL_MESSAGE(stud_rq_head(rq_stud_empty),
+                             "stud_rq_head on emptyqueue expected NULL returned !NULL");
+    validate_rq(rq_stud_empty);
+    compare_rq(rq_empty, rq_stud_empty);
 
-void test_2_RunQueue_validation_5(void) { validate_rq(rq_5); }
-
-void test_3_RunQueue_validation_5_broken_n_tasks(void) {
-    --rq_5->n_tasks;
-    validate_rq(rq_5);
+    utstring_printf(logstr, "Testing runqueue3. ");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(rq_stud_3->head, stud_rq_head(rq_stud_3),
+                                  "stud_rq_head on runqueue3");
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
 }
 
-void test_4_RunQueue_validation_5_broken_prev(void) {
-    rq_5->head->next->next->prev = NULL;
-    validate_rq(rq_5);
+void test_3_RunQueue_tail(void) {
+    utstring_printf(logstr, "Testing emptyqueue. ");
+    TEST_ASSERT_NULL_MESSAGE(stud_rq_tail(rq_stud_empty),
+                             "stud_rq_tail on emptyqueue expected NULL returned !NULL");
+    validate_rq(rq_stud_empty);
+    compare_rq(rq_empty, rq_stud_empty);
+
+    utstring_printf(logstr, "Testing runqueue3. ");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(rq_stud_3->head->next->next, stud_rq_tail(rq_stud_3),
+                                  "stud_rq_tail on runqueue3");
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
 }
 
-// NOTE WILL CAUSE MEMORY LEAK BECAUSE ELEMENTS ARE LOST
-void test_5_RunQueue_validation_5_broken_loop(void) {
-    rq_5->head->next->next->next = rq_5->head->next;
-    validate_rq(rq_5);
+void test_4_RunQueue_enque(void) {
+    utstring_printf(logstr, "Testing emptyqueue. ");
+    // model
+    task* enq_task = task_new(0, READY);
+    rq_empty->head = enq_task;
+    ++rq_empty->n_tasks;
+    // stud
+    enq_task = task_new(0, READY);
+    TEST_ASSERT_MESSAGE(stud_rq_enqueue(rq_stud_empty, enq_task),
+                        "stud_rq_enque on emptyqueue expected true returned false");
+
+    validate_rq(rq_stud_empty);
+    compare_rq(rq_empty, rq_stud_empty);
+
+    utstring_printf(logstr, "Testing runqueue3. ");
+    // model
+    ++rq_3->n_tasks;
+    enq_task             = task_new(3, TERMINATED);
+    enq_task->prev       = rq_3->head->next->next;
+    enq_task->prev->next = enq_task;
+    // stud
+    enq_task = task_new(3, TERMINATED);
+    TEST_ASSERT_MESSAGE(stud_rq_enqueue(rq_stud_3, enq_task), "stud_rq_enque on runqueue3 expected true returned false");
+
+    validate_rq(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
 }
 
 int main(void) {
     UNITY_BEGIN();
-    RUN_TEST(test_1_RunQueue_validation_empty);
-    RUN_TEST(test_2_RunQueue_validation_5);
-    RUN_TEST(test_3_RunQueue_validation_5_broken_n_tasks);
-    RUN_TEST(test_4_RunQueue_validation_5_broken_prev);
-    RUN_TEST(test_5_RunQueue_validation_5_broken_loop);
+    RUN_TEST(test_1_RunQueue_empty_check);
+    RUN_TEST(test_2_RunQueue_head);
+    RUN_TEST(test_3_RunQueue_tail);
+    RUN_TEST(test_4_RunQueue_enque);
     return UNITY_END();
 }
