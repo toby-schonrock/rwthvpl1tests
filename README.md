@@ -1,4 +1,4 @@
-Tests for week1 vpl assignments for RWTH Betriebssysteme und Systemsoftware
+# Tests for week1 vpl assignments for RWTH Betriebssysteme und Systemsoftware
 
 As we all know there where several issues with the assignment for week 1 of VPL:
 1. Unclear specification
@@ -7,16 +7,16 @@ As we all know there where several issues with the assignment for week 1 of VPL:
 1. ~~VPL~~
 
 This project attempts to amend that by allowing:
-2. Local compilation
-2. Use of your preffered IDE
-2. Use of static analysers
-2. Hopefully clear and thorough tests
+1. Local compilation
+1. Use of your preffered IDE
+1. Use of static analysers
+1. Hopefully clear and thorough tests
 
 To use :
-3. Pull the project with the option "--recurse-submodules"
-3. Copy your implementations into the appropriate .c files in the src directory
-3. run ./runtests.sh
+1. Pull the project with the option "--recurse-submodules"
+1. Copy your implementations into the appropriate .c files in the src directory
+1. run ./runtests.sh
 
-Note: this is currently intended to be run on linux systems only
-Note: I have attempted to keep the code "spoiler free" meaning no generic solutions should be found in the testing code
+Note: this is currently intended to be run on linux systems only.\
+Note: I have attempted to keep the code "spoiler free" meaning no generic solutions should be found in the testing code.\
 Feel free to contribute ~~and show the bus team what an assignment should look like~~
