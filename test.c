@@ -322,9 +322,118 @@ void test_14_SJF_terminate(void) {
     rq_3->head->state      = RUNNING;
     // stud
     stud_SJF_terminate(rq_stud_3);
-    // CHECKRUNTIME = false;
+    CHECKRUNTIME = false; // done incase student sets runtime to 0 for some reason
     compare_rq(rq_3, rq_stud_3);
-    // CHECKRUNTIME = true;
+    CHECKRUNTIME = true;
+}
+
+void test_11_SJF_clock_tick(void) {
+    utstring_printf(logstr, "Testing runqueue3 runtime decrement. ");
+    // model
+    --rq_3->head->runtime;
+    // stud
+    stud_SJF_clock_tick(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
+
+    clear_log();
+    utstring_printf(logstr, "Testing runqueue3 terminate and elect needed. ");
+    // model
+    task* old_head    = rq_3->head;
+    task* new_head    = rq_3->head->next;
+    old_head->runtime = 0;
+    old_head->state   = TERMINATED;
+    --new_head->runtime;
+    new_head->state      = RUNNING;
+    new_head->prev       = NULL;
+    new_head->next->next = old_head;
+    old_head->next       = NULL;
+    old_head->prev       = new_head->next;
+    rq_3->head           = new_head;
+    // stud
+    stud_SJF_clock_tick(rq_stud_3);
+    stud_SJF_clock_tick(rq_stud_3);
+    stud_SJF_clock_tick(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
+}
+
+void test_15_SJF_wait(void) {
+    utstring_printf(logstr, "Testing runqueue1. ");
+    // setup
+    rq_empty->head = task_new(0, RUNNING);
+    ++rq_empty->n_tasks;
+    rq_stud_empty->head = task_new(0, RUNNING);
+    ++rq_stud_empty->n_tasks;
+    // model
+    rq_empty->head->state = BLOCKED;
+    // stud
+    stud_SJF_wait(rq_stud_empty);
+    compare_rq(rq_empty, rq_stud_empty);
+
+    clear_log();
+    utstring_printf(logstr, "Testing runqueue3. ");
+    // setup
+    rq_3->head->next->state      = BLOCKED;
+    rq_stud_3->head->next->state = BLOCKED;
+
+    // model
+    task* head = rq_3->head;
+    task* tail = rq_3->head->next->next;
+    // swap head tail
+    int tmp       = head->pid;
+    head->pid     = tail->pid;
+    tail->pid     = tmp;
+    tmp           = head->runtime;
+    head->runtime = tail->runtime;
+    tail->runtime = tmp;
+    head->state   = RUNNING;
+    tail->state   = BLOCKED;
+    // stud
+    stud_SJF_wait(rq_stud_3);
+    compare_rq(rq_3, rq_stud_3);
+}
+
+void test_16_SJF_wake_up(void) {
+    utstring_printf(logstr, "Testing emptyqueue. ");
+    // stud
+    stud_SJF_wake_up(rq_stud_empty, 10);
+    compare_rq(rq_empty, rq_stud_empty);
+
+    clear_log();
+    utstring_printf(logstr, "Testing runqueue1. ");
+    // setup
+    rq_empty->head = task_new(0, BLOCKED);
+    ++rq_empty->n_tasks;
+    rq_stud_empty->head = task_new(0, BLOCKED);
+    ++rq_stud_empty->n_tasks;
+    // model
+    rq_empty->head->state = READY;
+    // stud
+    stud_SJF_wake_up(rq_stud_empty, 0);
+    compare_rq(rq_empty, rq_stud_empty);
+
+    clear_log();
+    utstring_printf(logstr, "Testing runqueue3. ");
+    // setup
+    rq_3->head->next->next->state        = BLOCKED;
+    rq_stud_3->head->next->next->state   = BLOCKED;
+    rq_3->head->next->next->runtime      = 1;
+    rq_stud_3->head->next->next->runtime = 1;
+    validate_rq(rq_3);
+    // model
+    task* middle = rq_3->head->next;
+    task* tail   = rq_3->head->next->next;
+    // swap middle tail
+    int tmp         = middle->pid;
+    middle->pid     = tail->pid;
+    tail->pid       = tmp;
+    tmp             = middle->runtime;
+    middle->runtime = tail->runtime;
+    tail->runtime   = tmp;
+    middle->state   = READY;
+    tail->state   = READY;
+    // stud
+    stud_SJF_wake_up(rq_stud_3, 2);
+    compare_rq(rq_3, rq_stud_3);
 }
 
 int main(void) {
@@ -341,5 +450,8 @@ int main(void) {
     RUN_TEST(test_10_SJF_start);
     RUN_TEST(test_12_13_SJF_elect);
     RUN_TEST(test_14_SJF_terminate);
+    RUN_TEST(test_11_SJF_clock_tick);
+    RUN_TEST(test_15_SJF_wait);
+    RUN_TEST(test_16_SJF_wake_up);
     return UNITY_END();
 }

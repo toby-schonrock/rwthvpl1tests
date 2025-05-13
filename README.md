@@ -20,4 +20,7 @@ To use :
 
 Note: this is currently intended to be run on linux systems only.\
 Note: I have attempted to keep the code "spoiler free" meaning no generic solutions should be found in the testing code.\
-Feel free to contribute ~~and show the bus team what an assignment should look like~~
+
+Feel free to contribute if you find any bugs not covered by the test suites or if the test fails on valid code.\
+The tests are based on an implementation which scored 25/25 and uses suggestions from the moodle forum.
+*e.g. that enqueu sorted should ignore the running element* [Forum to this](https://moodle.rwth-aachen.de/mod/hsuforum/discuss.php?d=10773&parent=26041)
