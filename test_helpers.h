@@ -167,7 +167,6 @@ void tearDown(void) {
 // checks legnth, prev/next pointers, loops
 static void validate_rq(const run_queue* rq) {
     size_t len = 0;
-    utstring_printf(logstr, "Validating runqueue: ");
 
     if (rq->head) {
         ++len;
@@ -209,29 +208,41 @@ static void validate_rq(const run_queue* rq) {
             curr = curr->next;
         }
     }
-    TEST_ASSERT_EQUAL_INT_MESSAGE(len, rq->n_tasks, "length of runqueue != n_tasks");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(len, rq->n_tasks, errfmt("length of runqueue != n_tasks"));
     utstring_printf(logstr, " Validation successful! ");
     task_table_clear();
 }
 
+bool CHECKPID     = true;
+bool CHECKSTATE   = true;
+bool CHECKRUNTIME = true;
+
 // compares PID's and states between model and stud rqs
 // should call validate first does not do invalidity checking
 static void compare_rq(const run_queue* rq, const run_queue* studrq) {
-    utstring_printf(logstr, "Comparing to model runqueue: ");
+    utstring_printf(logstr, "Validating student queue. ");
+    validate_rq(studrq);
+    utstring_printf(logstr, "Validating model queue. ");
+    validate_rq(rq);
+
+    utstring_printf(logstr, "Comparing to model runqueue. ");
     TEST_ASSERT_EQUAL_INT_MESSAGE(rq->n_tasks, studrq->n_tasks, errfmt("Runque length incorrect"));
     task* t     = rq->head;
     task* studt = studrq->head;
-    if (t) utstring_printf(logstr, "%s", task_tostring(t, taskstr1));
+    // if (t) utstring_printf(logstr, "%s", task_tostring(t, taskstr1));
     while (t) {
-        TEST_ASSERT_EQUAL_INT_MESSAGE(t->pid, studt->pid,
-                                      errfmt("Stud pid differs from model pid"));
+        if (CHECKPID)
+            TEST_ASSERT_EQUAL_INT_MESSAGE(t->pid, studt->pid,
+                                          errfmt("Stud pid differs from model pid"));
+        if (CHECKSTATE)
         TEST_ASSERT_EQUAL_INT_MESSAGE(t->state, studt->state,
                                       errfmt("Stud state differs from model state"));
+        if (CHECKRUNTIME)
         TEST_ASSERT_EQUAL_INT_MESSAGE(t->runtime, studt->runtime,
                                       errfmt("Stud runtime differs from model runtime"));
         t     = t->next;
         studt = studt->next;
-        if (t) utstring_printf(logstr, "<->%s", task_tostring(t, taskstr1));
+        // if (t) utstring_printf(logstr, "<->%s", task_tostring(t, taskstr1));
     }
     utstring_printf(logstr, " Runque matches model! ");
 }
