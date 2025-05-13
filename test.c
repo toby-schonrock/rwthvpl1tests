@@ -276,7 +276,7 @@ void test_10_SJF_start(void) {
     compare_rq(rq_3, rq_stud_3);
 }
 
-void test_12_13_elect(void) {
+void test_12_13_SJF_elect(void) {
     utstring_printf(logstr, "Testing runqueue3 alreay running(do nothing). ");
     // model do nothing lol
     stud_SJF_elect(rq_stud_3);
@@ -338,7 +338,7 @@ int main(void) {
     RUN_TEST(test_8_RunQueue_length);
     RUN_TEST(test_9_runqueue_destroy);
     RUN_TEST(test_10_SJF_start);
-    RUN_TEST(test_12_13_elect);
+    RUN_TEST(test_12_13_SJF_elect);
     RUN_TEST(test_14_SJF_terminate);
     return UNITY_END();
 }
