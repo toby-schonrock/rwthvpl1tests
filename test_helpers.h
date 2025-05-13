@@ -108,6 +108,7 @@ static void run_queue_free(run_queue* rq) {
 }
 
 // globals to be used in tests
+bool       PREV_TEST_FAILED = false;
 UT_string* logstr;
 UT_string* errstr;
 UT_string* taskstr1;
@@ -127,16 +128,14 @@ char* errfmt(char* fmt, ...) {
     vsnprintf(buff, 200, fmt, args);
     va_end(args);
     utstring_clear(errstr);
-    utstring_printf(errstr, "%s %s", buff, utstring_body(logstr));
+    utstring_printf(errstr, "%s", buff);
     return utstring_body(errstr);
 }
 
-void clear_log() {
-    utstring_clear(logstr);
-    utstring_printf(logstr, "LOG: ");
-}
+void clear_log() { utstring_clear(logstr); }
 
 void setUp(void) {
+    PREV_TEST_FAILED = false;
     utstring_new(logstr);
     utstring_new(errstr);
     utstring_new(taskstr1);
@@ -152,6 +151,11 @@ void setUp(void) {
 }
 
 void tearDown(void) {
+    if (Unity.CurrentTestFailed) {
+        PREV_TEST_FAILED = true;
+        printf("\n\033[1;34mLOG:\n\033[0m%s\033[0;31m%s\033[0m", utstring_body(logstr),
+               utstring_body(errstr));
+    }
     task_table_clear(); // free hashtable if still has contents due to test fail
     utstring_free(logstr);
     utstring_free(errstr);
@@ -209,7 +213,7 @@ static void validate_rq(const run_queue* rq) {
         }
     }
     TEST_ASSERT_EQUAL_INT_MESSAGE(len, rq->n_tasks, errfmt("length of runqueue != n_tasks"));
-    utstring_printf(logstr, " Validation successful! ");
+    utstring_printf(logstr, " Validation successful\n");
     task_table_clear();
 }
 
@@ -220,12 +224,12 @@ bool CHECKRUNTIME = true;
 // compares PID's and states between model and stud rqs
 // should call validate first does not do invalidity checking
 static void compare_rq(const run_queue* rq, const run_queue* studrq) {
-    utstring_printf(logstr, "Validating student queue. ");
-    validate_rq(studrq);
-    utstring_printf(logstr, "Validating model queue. ");
+    utstring_printf(logstr, "Validating model queue\n");
     validate_rq(rq);
+    utstring_printf(logstr, "Validating student queue\n");
+    validate_rq(studrq);
 
-    utstring_printf(logstr, "Comparing to model runqueue. ");
+    utstring_printf(logstr, "Comparing to model runqueue\n");
     TEST_ASSERT_EQUAL_INT_MESSAGE(rq->n_tasks, studrq->n_tasks, errfmt("Runque length incorrect"));
     task* t     = rq->head;
     task* studt = studrq->head;
@@ -235,14 +239,14 @@ static void compare_rq(const run_queue* rq, const run_queue* studrq) {
             TEST_ASSERT_EQUAL_INT_MESSAGE(t->pid, studt->pid,
                                           errfmt("Stud pid differs from model pid"));
         if (CHECKSTATE)
-        TEST_ASSERT_EQUAL_INT_MESSAGE(t->state, studt->state,
-                                      errfmt("Stud state differs from model state"));
+            TEST_ASSERT_EQUAL_INT_MESSAGE(t->state, studt->state,
+                                          errfmt("Stud state differs from model state"));
         if (CHECKRUNTIME)
-        TEST_ASSERT_EQUAL_INT_MESSAGE(t->runtime, studt->runtime,
-                                      errfmt("Stud runtime differs from model runtime"));
+            TEST_ASSERT_EQUAL_INT_MESSAGE(t->runtime, studt->runtime,
+                                          errfmt("Stud runtime differs from model runtime"));
         t     = t->next;
         studt = studt->next;
         // if (t) utstring_printf(logstr, "<->%s", task_tostring(t, taskstr1));
     }
-    utstring_printf(logstr, " Runque matches model! ");
+    utstring_printf(logstr, " Runque matches model\n");
 }
