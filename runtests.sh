@@ -5,9 +5,10 @@ INFO='\033[1;34m' # Blue
 NC='\033[0m' # No Color
 
 # check if user remembered to pull --recurse-submodules
-if [ ! -e "ext/Unity/src"] || [ ! -e "ext/uthash/src"]
+if [ ! -e "ext/Unity/src" -o ! -e "ext/uthash/src" ]
 then
-    echo -e "Cannot find submodules, call: \ngit submodule update --init"
+    echo -e "${ERROR}Cannot find submodules!${NC} Call: \ngit submodule update --init"
+    exit 1
 fi
 
 mkdir -p build
